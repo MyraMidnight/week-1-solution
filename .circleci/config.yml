@@ -1,0 +1,75 @@
+version: 2.1
+
+orbs:
+  kubernetes: circleci/kubernetes@0.12.0
+
+executors:
+  docker-environment:
+    docker:
+      - image: cimg/base:stable
+    environment:
+      IMAGE_NAME: ironpeak/connect4-client
+
+jobs:
+  build:
+    executor: docker-environment
+    steps:
+    - checkout
+    - setup_remote_docker
+    - run:
+        name: "Docker build"
+        command: docker build src/connect4-client -t $IMAGE_NAME
+    - run:
+        name: "Docker save"
+        command: docker save -o image.tar $IMAGE_NAME      
+    - persist_to_workspace:
+        root: .
+        paths:
+          - ./image.tar
+  publish:
+    executor: docker-environment
+    steps:
+    - checkout
+    - attach_workspace:
+        at: /tmp/workspace
+    - setup_remote_docker
+    - run:
+        name: "Docker load"
+        command: docker load -i /tmp/workspace/image.tar
+    - run:
+        name: "Docker tag"
+        command: docker tag $IMAGE_NAME $IMAGE_NAME:$CIRCLE_SHA1
+    - run:
+        name: "Docker login"
+        command: echo "$DOCKERHUB_ACCESS_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+    - run:
+        name: "Docker push"
+        command: docker push $IMAGE_NAME:$CIRCLE_SHA1
+  deploy:
+    docker:
+    - image: cimg/base:stable
+    steps:
+    - checkout
+    - kubernetes/install-kubectl
+    - kubernetes/install-kubeconfig:
+        kubeconfig: KUBECONFIG_DATA
+    - run:
+        name: "Generating connect4 client yaml"
+        command: ./scripts/ci/yaml/merge.sh "./src/connect4-client/k8s" | sed "s/{{IMAGE_TAG}}/${CIRCLE_SHA1}/g" > connect4-client.yaml
+    - run:
+        name: "Generating httpbin yaml"
+        command: ./scripts/ci/yaml/merge.sh "./src/httpbin/k8s" > httpbin.yaml
+    - run:
+        name: "Deploy"
+        command: kubectl apply -f connect4-client.yaml -f httpbin.yaml
+
+workflows:
+  pipeline:
+    jobs:
+    - build
+    - publish:
+        requires:
+          - build
+    - deploy:
+        requires:
+          - publish

@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: connect4-client
+  labels:
+    app: connect4-client
+spec:
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 3000
+  selector:
+    app: connect4-client

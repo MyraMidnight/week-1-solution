@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: connect4-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: connect4-client
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: connect4-client
+        version: v1
+    spec:
+      containers:
+      - image: docker.io/ironpeak/connect4-client:{{IMAGE_TAG}}
+        imagePullPolicy: Always
+        name: connect4-client
+        ports:
+        - containerPort: 3000
