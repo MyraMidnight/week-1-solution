@@ -70,6 +70,7 @@ function main {
     verify "npm"     "8.0.0"  "npm --version"
     verify "pip"     "20.0.0" "pip --version | cut -d ' ' -f2"
     verify "python"  "3.8.0"  "python --version | cut -d ' ' -f2"
+    verify "yarn"    "1.20.0" "yarn --version"
 
     if [ "${FAILURE}" != "false" ]; then
         echo_failure "Error: not all tools were up to date"
