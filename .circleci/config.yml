@@ -73,3 +73,7 @@ workflows:
     - deploy:
         requires:
           - publish
+        filters:
+          branches:
+            only:
+            - main
